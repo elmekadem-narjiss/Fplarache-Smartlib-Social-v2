@@ -16,10 +16,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Configure AWS CLI region
+        run: aws configure set region eu-north-1  
+
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          region: eu-north-1  # Remplacez par votre région AWS
+          registry-type: ecr
+          registries: ${{ secrets.AWS_ECR_REGISTRY }}
 
       - name: Build and push Spring Boot Docker image
         uses: ./.github/actions/publish-api-image  # Appel de l'action personnalisée
