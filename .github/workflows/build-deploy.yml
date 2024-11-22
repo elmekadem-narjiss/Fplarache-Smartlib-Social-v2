@@ -1,0 +1,31 @@
+name: Build and Deploy Spring Boot App
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build and push Spring Boot Docker image
+        uses: ./.github/actions/publish-api-image  # Appel de l'action personnalisée
+        with:
+          spring-profile: prod  # Assurez-vous que votre Spring Boot utilise le profile "prod"
+          published-app: target/Social_Serice-0.0.1-SNAPSHOT.jar  # Le fichier JAR généré
+          dockerfile: Dockerfile  # Chemin vers le Dockerfile
+          image-short-name: social-service-api  # Nom de l'image Docker
+          image-prefix: devops  # Préfixe de l'image
+          image-tag: latest  # Tag de l'image
+          ecr-registry: ${{ secrets.AWS_ECR_REGISTRY }}  # Votre dépôt ECR configuré dans les secrets
