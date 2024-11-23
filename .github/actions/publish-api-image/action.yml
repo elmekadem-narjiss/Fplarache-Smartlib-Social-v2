@@ -25,9 +25,10 @@ inputs:
     required: true
 
 runs:
-  using: 'bash'
+  using: 'composite'
   steps:
     - name: Définir le nom de l'image Docker
+      shell: bash
       run: |
         echo "ECR Registry: ${{ inputs.ecr-registry }}"
         echo "Image Prefix: ${{ inputs.image-prefix }}"
