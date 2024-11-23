@@ -1,63 +1,85 @@
 name: 'Publish API Image'
-description: 'Construire et publier une image Docker sur ECR'
-
+description: 'Publish API Image for Java Application'
 inputs:
-  spring-profile:
-    description: 'Le profil de Spring à utiliser (ex : prod)'
-    required: true
-  published-app:
-    description: 'Le chemin vers le fichier JAR publié de l’application'
-    required: true
+  java-environment:
+    description: 'Java environment (e.g., dev, prod)'
+    default: 'dev'
   dockerfile:
-    description: 'Le chemin du Dockerfile'
-    required: true
+    description: 'Path to the Dockerfile'
+    default: './Dockerfile'
+  cmd:
+    description: 'Command to run the Java app (e.g., java -jar app.jar)'
+    default: 'java -jar /app.jar'  # This may need to change depending on where you copy the JAR in Dockerfile
   image-short-name:
-    description: 'Le nom court de l’image Docker'
-    required: true
-  image-prefix:
-    description: 'Le préfixe de l’image Docker (souvent le nom du projet)'
-    required: true
+    description: 'Short name for the Docker image'
+    default: 'fplarache-smartlib-social'
   image-tag:
-    description: 'Le tag de l’image Docker'
-    required: true
+    description: 'Tag for the Docker image (e.g., v1.0.0)'
+    default: 'latest'  # Set 'latest' as default tag
   ecr-registry:
-    description: 'Le registre ECR dans lequel pousser l’image'
-    required: true
+    description: 'Amazon ECR registry URL (e.g., 123456789012.dkr.ecr.us-west-1.amazonaws.com)'
+    default: '774305596814.dkr.ecr.eu-north-1.amazonaws.com/dev-fplarache-smart-lib-social-repo'
+
+outputs:
+  image-uri:
+    description: 'The URI of the pushed image'
+    value: ${{ inputs.ecr-registry }}/${{ inputs.image-short-name }}:${{ inputs.image-tag }}
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
-    - name: Définir le nom de l'image Docker
-      shell: bash
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Docker Buildx (optional, if using multi-platform builds)
+      uses: docker/setup-buildx-action@v2
+
+    - name: Log in to Amazon ECR
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - shell: bash
       run: |
-        echo "ECR Registry: ${{ inputs.ecr-registry }}"
-        echo "Image Prefix: ${{ inputs.image-prefix }}"
-        echo "Image Short Name: ${{ inputs.image-short-name }}"
-        echo "Image Tag: ${{ inputs.image-tag }}"
+        # Extract input parameters
+        IMAGE_SHORT_NAME="${{ inputs.image-short-name }}"
+        IMAGE_TAG="${{ inputs.image-tag }}"  # Ensure IMAGE_TAG is 'latest'
+        ECR_REGISTRY="${{ inputs.ecr-registry }}"
+        DOCKERFILE_PATH="${{ inputs.dockerfile }}"
+        JAVA_ENVIRONMENT="${{ inputs.java-environment }}"
 
-        # Générer l'image complète
-        export IMAGENAME="${{ inputs.ecr-registry }}/${{ inputs.image-prefix }}-${{ inputs.image-short-name }}:${{ inputs.image-tag }}"
-        echo "Generated IMAGENAME: $IMAGENAME"
-
-        # Vérifier que IMAGENAME n'est pas vide ou invalide
-        if [ -z "$IMAGENAME" ]; then
-          echo "IMAGENAME is empty or invalid. Exiting..."
+        # Debugging: Print Dockerfile path
+        echo "Dockerfile Path: $DOCKERFILE_PATH"
+        
+        # Step 1: Validate inputs
+        if [[ -z "$IMAGE_SHORT_NAME" ]]; then
+          echo "Error: IMAGE_SHORT_NAME is not set or empty"
+          exit 1
+        fi
+        if [[ -z "$IMAGE_TAG" ]]; then
+          echo "Error: IMAGE_TAG is not set or empty"
+          exit 1
+        fi
+        if [[ -z "$ECR_REGISTRY" ]]; then
+          echo "Error: ECR_REGISTRY is not set or empty"
+          exit 1
+        fi
+        if [[ -z "$DOCKERFILE_PATH" || ! -f "$DOCKERFILE_PATH" ]]; then
+          echo "Error: DOCKERFILE_PATH is not set or does not point to a valid file"
           exit 1
         fi
 
-        # Construire l'image Docker
-        docker build --build-arg SPRING_PROFILE_ARG=${{ inputs.spring-profile }} -f ${{ inputs.dockerfile }} -t $IMAGENAME .
+        # Step 2: Construct the full image name (without prefix)
+        IMAGENAME="${ECR_REGISTRY}/${IMAGE_SHORT_NAME}:${IMAGE_TAG}"
 
-        # Vérification si la construction a échoué
-        if [ $? -ne 0 ]; then
-          echo "Docker build failed. Please check the Dockerfile and context path."
-          exit 1
-        fi
+        # Step 3: Display the formatted image name
+        echo "Formatted image name: $IMAGENAME"
 
-        # Taguer et pousser l'image Docker
-        docker tag $IMAGENAME $IMAGENAME:latest
+        # Step 4: Build the Docker image
+        docker build \
+          -f $DOCKERFILE_PATH \
+          -t $IMAGENAME .
+
+        # Step 5: Push the Docker image
         docker push $IMAGENAME
-        docker push $IMAGENAME:latest
 
-        # Exporter l'URI de l'image
-        echo "image-uri=${IMAGENAME}" >> $GITHUB_ENV
+        # Step 6: Output the image URI
+        echo "image-uri=$IMAGENAME" >> $GITHUB_OUTPUT
