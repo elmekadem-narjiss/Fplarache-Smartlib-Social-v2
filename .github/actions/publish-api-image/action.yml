@@ -35,9 +35,9 @@ runs:
       run: |
         export IMAGENAME="${{ inputs.ecr-registry }}/${{ inputs.image-prefix }}-${{ inputs.image-short-name }}"
         echo "Generated IMAGENAME: $IMAGENAME"
-    
-    - name: Build and Push Docker Image
       shell: bash
+
+    - name: Build and Push Docker Image
       run: |
         # Débogage : afficher le nom de l'image
         echo "IMAGENAME: $IMAGENAME"
@@ -52,4 +52,4 @@ runs:
 
         # Output the image URI
         echo "image-uri=${IMAGENAME}:latest" >> $GITHUB_ENV
-
+      shell: bash
