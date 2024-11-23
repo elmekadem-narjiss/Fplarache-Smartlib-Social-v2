@@ -16,18 +16,23 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      - name: Set up AWS CLI
+      - name: Configure AWS credentials
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          aws configure set region eu-north-1  # Configurez la région pour AWS CLI
-          aws sts get-caller-identity  # Vérifiez si la configuration AWS fonctionne
+          aws configure set aws_access_key_id $AWS_ACCESS_KEY_ID
+          aws configure set aws_secret_access_key $AWS_SECRET_ACCESS_KEY
+          aws configure set region eu-north-1
+          aws sts get-caller-identity
 
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          registry-type: private  # Indique que vous utilisez un registre privé
+          registry-type: private
 
       - name: Build and push Spring Boot Docker image
-        uses: ./.github/actions/publish-api-image  # Appel de l'action personnalisée
+        uses: ./.github/actions/publish-api-image
         with:
           spring-profile: prod
           published-app: target/Social_Serice-0.0.1-SNAPSHOT.jar
@@ -35,4 +40,4 @@ jobs:
           image-short-name: social-service-api
           image-prefix: devops
           image-tag: latest
-          ecr-registry: ${{ secrets.AWS_ECR_REGISTRY }}  # Utilisation de votre secret
+          ecr-registry: ${{ secrets.AWS_ECR_REGISTRY }}
