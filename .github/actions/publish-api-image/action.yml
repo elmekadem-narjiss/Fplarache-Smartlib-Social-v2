@@ -33,7 +33,7 @@ runs:
   steps:
     - name: Debug IMAGENAME
       run: |
-        # Define the image name
+        # Define the image name correctly
         export IMAGENAME="${{ inputs.ecr-registry }}/${{ inputs.image-prefix }}-${{ inputs.image-short-name }}"
         echo "Generated IMAGENAME: $IMAGENAME"
       shell: bash
