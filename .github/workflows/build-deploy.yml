@@ -19,7 +19,8 @@ jobs:
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
         with:
-          registry-type: private  # Spécifier ici 'private' si vous utilisez un registre privé
+          region: eu-north-1  # Spécifier la région Stockholm
+          registry-type: private  # Utiliser un registre privé
 
       - name: Build and push Spring Boot Docker image
         uses: ./.github/actions/publish-api-image  # Appel de l'action personnalisée
