@@ -31,27 +31,24 @@ outputs:
 runs:
   using: "composite"
   steps:
+    - name: Debug IMAGENAME
+      run: |
+        export IMAGENAME="${{ inputs.ecr-registry }}/${{ inputs.image-prefix }}-${{ inputs.image-short-name }}"
+        echo "Generated IMAGENAME: $IMAGENAME"
+    
     - name: Build and Push Docker Image
       shell: bash
       run: |
-        # Define the image name
-        export IMAGENAME="${{ inputs.ecr-registry }}/${{ inputs.image-prefix }}-${{ inputs.image-short-name }}"
-
-        # Debugging: Print the generated image name
-        echo "Generated IMAGENAME: $IMAGENAME"
+        # Débogage : afficher le nom de l'image
+        echo "IMAGENAME: $IMAGENAME"
 
         # Build the Docker image
-        echo "Building Docker image..."
-        docker build --build-arg SPRING_PROFILE_ARG="${{ inputs.spring-profile }}" -f "${{ inputs.dockerfile }}" -t "$IMAGENAME:${{ inputs.image-tag }}" .
+        docker build --build-arg SPRING_PROFILE_ARG=${{ inputs.spring-profile }} -f ${{ inputs.dockerfile }} -t $IMAGENAME:${{ inputs.image-tag }} .
 
-        # Tag the Docker image
-        echo "Tagging Docker image..."
-        docker image tag "$IMAGENAME:${{ inputs.image-tag }}" "$IMAGENAME:latest"
-
-        # Push the Docker image
-        echo "Pushing Docker image..."
-        docker push "$IMAGENAME:${{ inputs.image-tag }}"
-        docker push "$IMAGENAME:latest"
+        # Tag and push the Docker image
+        docker image tag $IMAGENAME:${{ inputs.image-tag }} $IMAGENAME:latest
+        docker push $IMAGENAME:${{ inputs.image-tag }}
+        docker push $IMAGENAME:latest
 
         # Output the image URI
         echo "image-uri=${IMAGENAME}:latest" >> $GITHUB_ENV
